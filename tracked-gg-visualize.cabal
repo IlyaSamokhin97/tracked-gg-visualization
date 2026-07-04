@@ -1,0 +1,104 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           tracked-gg-visualize
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/tracked-gg-visualize#readme>
+homepage:       https://github.com/githubuser/tracked-gg-visualize#readme
+bug-reports:    https://github.com/githubuser/tracked-gg-visualize/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2026 Author name here
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/tracked-gg-visualize
+
+library
+  exposed-modules:
+      Exercise
+      ExerciseSet
+  other-modules:
+      Paths_tracked_gg_visualize
+  autogen-modules:
+      Paths_tracked_gg_visualize
+  hs-source-dirs:
+      src
+  default-extensions:
+      NoImplicitPrelude
+      ExtendedDefaultRules
+      LambdaCase
+      OverloadedStrings
+      TypeFamilies
+  ghc-options: -Wall -Wno-type-defaults -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base >=4.7 && <5
+    , cassava >=0.5.4.1 && <0.6
+    , conduit >=1.3.6.1 && <2
+    , hvega >=0.12.0.7 && <0.13
+    , universum >=1.8.3 && <2
+    , vector >=0.13.2 && <0.14
+    , zip >=2.2.1 && <3
+  default-language: GHC2024
+
+executable tracked-gg-visualize-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_tracked_gg_visualize
+  autogen-modules:
+      Paths_tracked_gg_visualize
+  hs-source-dirs:
+      app
+  default-extensions:
+      NoImplicitPrelude
+      ExtendedDefaultRules
+      LambdaCase
+      OverloadedStrings
+      TypeFamilies
+  ghc-options: -Wall -Wno-type-defaults -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , cassava >=0.5.4.1 && <0.6
+    , conduit >=1.3.6.1 && <2
+    , hvega >=0.12.0.7 && <0.13
+    , tracked-gg-visualize
+    , universum >=1.8.3 && <2
+    , vector >=0.13.2 && <0.14
+    , zip >=2.2.1 && <3
+  default-language: GHC2024
+
+test-suite tracked-gg-visualize-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_tracked_gg_visualize
+  autogen-modules:
+      Paths_tracked_gg_visualize
+  hs-source-dirs:
+      test
+  default-extensions:
+      NoImplicitPrelude
+      ExtendedDefaultRules
+      LambdaCase
+      OverloadedStrings
+      TypeFamilies
+  ghc-options: -Wall -Wno-type-defaults -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , cassava >=0.5.4.1 && <0.6
+    , conduit >=1.3.6.1 && <2
+    , hvega >=0.12.0.7 && <0.13
+    , tracked-gg-visualize
+    , universum >=1.8.3 && <2
+    , vector >=0.13.2 && <0.14
+    , zip >=2.2.1 && <3
+  default-language: GHC2024
