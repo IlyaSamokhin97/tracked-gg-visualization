@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-
 module Exercise (module Exercise) where
 
 import Universum
