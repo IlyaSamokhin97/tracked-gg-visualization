@@ -2,13 +2,14 @@ module Main (main) where
 
 import Universum
 
+import qualified Data.Vector as V
 import Codec.Archive.Zip
 import Conduit
 import Data.Csv
-import Data.Vector qualified as Vector
+import Exercise
 import ExerciseSet
-import Graphics.Vega.VegaLite
-
+import Fmt
+import Graphics.Vega.VegaLite hiding (filter)
 import System.Envy
 
 data Paths =
@@ -21,25 +22,49 @@ data Paths =
 instance FromEnv Paths
 
 main :: IO ()
-main = decodeEnv >>= either print (\ps -> print ps >> run ps)
+main = do
+  result <- runExceptT $ do
+    paths <- ExceptT decodeEnv
+    liftIO $ fmtLn $ "input: "+|trackedggExport paths|+""
+    run paths
+  case result of
+    Left err         -> fmtLn $ "Error! - "+|err|+""
+    Right resultPath -> fmtLn $ "See result at "+|resultPath|+""
 
-run :: Paths -> IO ()
+type Error = String
+type Result = ExceptT Error IO
+
+run :: Paths -> Result FilePath
 run Paths { trackedggExport = inputArchivePath, trackedggVegalite = outputPath } = do
-  setsSelector <- mkEntrySelector "sets.csv"
-  exercisesSelector <- mkEntrySelector "exercises.csv"
-  setsEntry <- withArchive inputArchivePath (sourceEntry setsSelector sinkLazy)
-  case (decodeByName setsEntry :: Either String (Header, Vector ExerciseSet)) of
-    Left errors -> print errors
-    Right (_, exercises) ->
-      let dat = exercisesSetsToData exercises
-          enc = encoding . position X [PName "sessionDate", PmType Temporal]
-                         . position Y [PName "weight", PmType Quantitative]
-                         . color [MName "reps"]
-          bkg = background "rgba(0, 0, 0, 0.05)"
-          vegaLite = toVegaLite [bkg, dat, mark Tick [], enc []]
-      in do
-        toHtmlFile outputPath vegaLite
+  sets <- parseVector inputArchivePath "sets.csv" (type ExerciseSet)
+  exercises <- parseVector inputArchivePath "exercises.csv" (type Exercise)
+  preacherCurlSets <- allSetsForExercise "Unilateral Machine Preacher Curl" exercises sets
+  let dat = exercisesSetsToData preacherCurlSets
+      enc = encoding
+          . position X [PName "sessionDate", PmType Temporal]
+          . position Y [PName "1RM", PmType Quantitative]
+      bkg = background "rgba(0, 0, 0, 0.05)"
+      vegaLite = toVegaLite [bkg, dat, mark Tick [], enc []]
+  liftIO $ toHtmlFile outputPath vegaLite
+  pure outputPath
 
+allSetsForExercise :: Text -> Vector Exercise -> Vector ExerciseSet -> Result (Vector ExerciseSet)
+allSetsForExercise n es ss = do
+  eId <- Exercise.id <$> find (\e -> Exercise.name e == n) es
+       & maybeToResult ("exercise '"+|n|+"' not found")
+  pure $ V.filter (\s -> exerciseId s == eId) ss
+
+maybeToResult :: Error -> Maybe a -> Result a
+maybeToResult err mb = ExceptT . pure $ maybeToRight err mb
+
+parseVector :: FilePath
+            -> FilePath
+            -> forall a -> FromNamedRecord a
+            => Result (Vector a)
+parseVector archivePath entryPath _ = do
+  selector <- mkEntrySelector entryPath
+  entry <- withArchive archivePath (sourceEntry selector sinkLazy)
+  hoistEither $ snd <$> decodeByName entry
 
 exercisesSetsToData :: Vector ExerciseSet -> Data
 exercisesSetsToData es =
@@ -47,16 +72,16 @@ exercisesSetsToData es =
   where
     rowFor e =
       dataRow
-        [ ("sessionId", Str $ sessionId e)
-        , ("sessionDate", Str $ sessionDate e)
+        [ ("sessionDate", Str $ sessionDate e)
         , ("exerciseId", Str $ exerciseId e)
         , ("exerciseName", Str $ exerciseName e)
-        , ("reps", Number $ fromIntegral (repetitions e))
-        , ("weight", Number $ unErrorsBecameZero (weight e))
-        , ("rir", maybe NullValue (Number . fromIntegral) (rir e))
-        , ("notes", Str $ notes e)
-        , ("method", Str $ method e)
-        , ("createdAt", Str $ createdAt e)
-        , ("updatedAt", Str $ updatedAt e)
+        , ("1RM", Number $ oneRmOConner (weight e) (repetitions e))
         ]
         []
+
+oneRmOConner :: ErrorsBecameZero Double -> Int -> Double
+oneRmOConner weight reps =
+  let w = unErrorsBecameZero weight
+      r = fromIntegral reps
+  in
+  w * (1 + 0.025 * r)

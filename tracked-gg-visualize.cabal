@@ -40,12 +40,14 @@ library
       OverloadedStrings
       TypeFamilies
       DeriveGeneric
+      RequiredTypeArguments
   ghc-options: -Wall -Wno-type-defaults -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , cassava >=0.5.4.1 && <0.6
     , conduit >=1.3.6.1 && <2
     , envy >=2.1.5.0 && <3
+    , fmt >=0.6.3 && <0.7
     , hvega >=0.12.0.7 && <0.13
     , universum >=1.8.3 && <2
     , vector >=0.13.2 && <0.14
@@ -67,12 +69,14 @@ executable tracked-gg-visualize-exe
       OverloadedStrings
       TypeFamilies
       DeriveGeneric
+      RequiredTypeArguments
   ghc-options: -Wall -Wno-type-defaults -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , cassava >=0.5.4.1 && <0.6
     , conduit >=1.3.6.1 && <2
     , envy >=2.1.5.0 && <3
+    , fmt >=0.6.3 && <0.7
     , hvega >=0.12.0.7 && <0.13
     , tracked-gg-visualize
     , universum >=1.8.3 && <2
@@ -96,12 +100,14 @@ test-suite tracked-gg-visualize-test
       OverloadedStrings
       TypeFamilies
       DeriveGeneric
+      RequiredTypeArguments
   ghc-options: -Wall -Wno-type-defaults -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , cassava >=0.5.4.1 && <0.6
     , conduit >=1.3.6.1 && <2
     , envy >=2.1.5.0 && <3
+    , fmt >=0.6.3 && <0.7
     , hvega >=0.12.0.7 && <0.13
     , tracked-gg-visualize
     , universum >=1.8.3 && <2
