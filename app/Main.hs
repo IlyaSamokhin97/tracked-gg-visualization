@@ -29,7 +29,7 @@ main = do
     run paths
   case result of
     Left err         -> fmtLn $ "Error! - "+|err|+""
-    Right resultPath -> fmtLn $ "See result at "+|resultPath|+""
+    Right resultPath -> fmtLn $ "See result at file://"+|resultPath|+""
 
 type Error = String
 type Result = ExceptT Error IO
