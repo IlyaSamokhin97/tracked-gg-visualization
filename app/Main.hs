@@ -2,6 +2,8 @@ module Main (main) where
 
 import Universum
 
+import qualified Data.Aeson as J
+import qualified Data.Aeson.KeyMap as JKeyMap
 import qualified Data.Vector as V
 import Codec.Archive.Zip
 import Conduit
@@ -25,6 +27,7 @@ main :: IO ()
 main = do
   result <- runExceptT $ do
     paths <- ExceptT decodeEnv
+    -- TODO: output inputs explicitly, e.g. "env vars: ENV_VAR = foo"
     liftIO $ fmtLn $ "input: "+|trackedggExport paths|+""
     run paths
   case result of
@@ -38,21 +41,46 @@ run :: Paths -> Result FilePath
 run Paths { trackedggExport = inputArchivePath, trackedggVegalite = outputPath } = do
   sets <- parseVector inputArchivePath "sets.csv" (type ExerciseSet)
   exercises <- parseVector inputArchivePath "exercises.csv" (type Exercise)
-  preacherCurlSets <- allSetsForExercise "Unilateral Machine Preacher Curl" exercises sets
-  let dat = exercisesSetsToData preacherCurlSets
-      enc = encoding
-          . position X [PName "sessionDate", PmType Temporal]
-          . position Y [PName "1RM", PmType Quantitative]
-      bkg = background "rgba(0, 0, 0, 0.05)"
-      vegaLite = toVegaLite [bkg, dat, mark Tick [], enc []]
-  liftIO $ toHtmlFile outputPath vegaLite
+  setsByExercise <- traverse (\x -> (x,) <$> allSetsForExercise exercises sets x)
+    -- TODO: move this out using a Reader?
+    [ "Unilateral Machine Preacher Curl"
+    , "Isolateral Frontal Plane Pulldown"
+    ]
+  liftIO $
+    toHtmlFileWith htmlOptions outputPath $
+    toVegaLite [vConcat (toVLSpec <$> setsByExercise)]
   pure outputPath
+  where
+    toVLSpec :: (Text, Vector ExerciseSet) -> VLSpec
+    toVLSpec (exerciseName, sets) = asSpec
+      [ title exerciseName []
+      , bkg
+      , exercisesSetsToData sets
+      , mark Line []
+      , enc []
+      , width 800
+      , height 800
+      ]
 
-allSetsForExercise :: Text -> Vector Exercise -> Vector ExerciseSet -> Result (Vector ExerciseSet)
-allSetsForExercise n es ss = do
-  eId <- Exercise.id <$> find (\e -> Exercise.name e == n) es
-       & maybeToResult ("exercise '"+|n|+"' not found")
-  pure $ V.filter (\s -> exerciseId s == eId) ss
+    enc = encoding
+        . position X [PName "sessionDate", PmType Temporal]
+        . position Y [PName "1RM", PmType Quantitative]
+
+    bkg = background "rgba(0, 0, 0, 0.05)"
+
+    htmlOptions :: Maybe J.Value
+    htmlOptions = Just . J.Object . JKeyMap.fromList $
+      [ ("scaleFactor", J.Number 1)
+      ]
+
+allSetsForExercise :: Vector Exercise -> Vector ExerciseSet -> Text -> Result (Vector ExerciseSet)
+allSetsForExercise es sets n = do
+  exId <- Exercise.id <$> find (withName n) es & maybeToResult ("exercise '"+|n|+"' not found")
+  pure $ V.filter (normalWithId exId) sets
+  where
+    withName nm e      = Exercise.name e == nm
+    normalWithId eId s = exerciseId s == eId
+                      && method s == ExerciseSet.Normal
 
 maybeToResult :: Error -> Maybe a -> Result a
 maybeToResult err mb = ExceptT . pure $ maybeToRight err mb

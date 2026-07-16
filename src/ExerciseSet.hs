@@ -15,7 +15,7 @@ data ExerciseSet =
   , weight :: !(ErrorsBecameZero Double)
   , rir :: !(Maybe Int)
   , notes :: !Text
-  , method :: !Text
+  , method :: !Method
   , secondaryRepetitions :: !Text
   , secondaryWeight :: !Text
   , secondaryRir :: !Text
@@ -39,3 +39,13 @@ unErrorsBecameZero (ErrorsBecameZero x) = x
 instance (Num a, FromField a) =>
          FromField (ErrorsBecameZero a) where
   parseField = pure . ErrorsBecameZero . fromRight 0 . runParser . parseField
+
+data Method =
+  Normal | Warm
+  deriving (Eq, Show)
+
+instance FromField Method where
+  parseField = \case
+    "normal" -> pure Normal
+    "warm"   -> pure Warm
+    x        -> fail $ "Unknown status: " ++ show x 
