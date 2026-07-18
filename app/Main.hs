@@ -5,12 +5,14 @@ import Universum
 import qualified Data.Aeson as J
 import qualified Data.Aeson.KeyMap as JKeyMap
 import qualified Data.Vector as V
+import qualified Fmt
 import Codec.Archive.Zip
 import Conduit
+import Data.Bifunctor
 import Data.Csv
 import Exercise
 import ExerciseSet
-import Fmt
+import Fmt hiding (Buildable)
 import Graphics.Vega.VegaLite hiding (filter)
 import System.Envy
 
@@ -26,19 +28,34 @@ instance FromEnv Paths
 main :: IO ()
 main = do
   result <- runExceptT $ do
-    paths <- ExceptT decodeEnv
+    paths <- ExceptT . fmap (first DecodeEnvFailed) $ decodeEnv
     -- TODO: output inputs explicitly, e.g. "env vars: ENV_VAR = foo"
     liftIO $ fmtLn $ "input: "+|trackedggExport paths|+""
-    run paths
+    vizualizeToHtml
+      (ArchivedCsvs (trackedggExport paths))
+      (Html       (trackedggVegalite paths))
   case result of
-    Left err         -> fmtLn $ "Error! - "+|err|+""
-    Right resultPath -> fmtLn $ "See result at file://"+|resultPath|+""
+    Left err                -> fmtLn $ "Error! - "+|err|+""
+    Right (Html resultPath) -> fmtLn $ "See result at file://"+|resultPath|+""
 
-type Error = String
+data Error =
+    ExerciseNotFound Text
+  | DecodeEnvFailed String
+  | DecodeCsvFailed String
+
+instance Fmt.Buildable Error where
+  build = \case
+    ExerciseNotFound n -> "exercise "+|n|+" not found"
+    DecodeEnvFailed e -> "decodeEnv failed with error: '"+|e|+"'"
+    DecodeCsvFailed e -> "decode csv failed with error: '"+|e|+"'"
+
 type Result = ExceptT Error IO
 
-run :: Paths -> Result FilePath
-run Paths { trackedggExport = inputArchivePath, trackedggVegalite = outputPath } = do
+newtype ArchivedCsvs = ArchivedCsvs FilePath
+newtype Html = Html FilePath
+
+vizualizeToHtml :: ArchivedCsvs -> Html -> Result Html
+vizualizeToHtml (ArchivedCsvs inputArchivePath) (Html outputPath) = do
   sets <- parseVector inputArchivePath "sets.csv" (type ExerciseSet)
   exercises <- parseVector inputArchivePath "exercises.csv" (type Exercise)
   setsByExercise <- traverse (\x -> (x,) <$> allSetsForExercise exercises sets x)
@@ -49,7 +66,7 @@ run Paths { trackedggExport = inputArchivePath, trackedggVegalite = outputPath }
   liftIO $
     toHtmlFileWith htmlOptions outputPath $
     toVegaLite [vConcat (toVLSpec <$> setsByExercise)]
-  pure outputPath
+  pure $ Html outputPath
   where
     toVLSpec :: (Text, Vector ExerciseSet) -> VLSpec
     toVLSpec (exerciseName, sets) = asSpec
@@ -75,7 +92,7 @@ run Paths { trackedggExport = inputArchivePath, trackedggVegalite = outputPath }
 
 allSetsForExercise :: Vector Exercise -> Vector ExerciseSet -> Text -> Result (Vector ExerciseSet)
 allSetsForExercise es sets n = do
-  exId <- Exercise.id <$> find (withName n) es & maybeToResult ("exercise '"+|n|+"' not found")
+  exId <- Exercise.id <$> find (withName n) es & maybeToResult (ExerciseNotFound n)
   pure $ V.filter (normalWithId exId) sets
   where
     withName nm e      = Exercise.name e == nm
@@ -92,7 +109,7 @@ parseVector :: FilePath
 parseVector archivePath entryPath _ = do
   selector <- mkEntrySelector entryPath
   entry <- withArchive archivePath (sourceEntry selector sinkLazy)
-  hoistEither $ snd <$> decodeByName entry
+  hoistEither $ bimap DecodeCsvFailed snd $ decodeByName entry
 
 exercisesSetsToData :: Vector ExerciseSet -> Data
 exercisesSetsToData es =
